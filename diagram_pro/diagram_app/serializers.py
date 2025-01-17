@@ -8,10 +8,27 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('username', 'password')
 
+    def validate_username(self, value):
+        """
+        Логиндин узундугун текшерүү: 14 сан болушу керек.
+        """
+        if len(value) != 14:
+            raise serializers.ValidationError("Логин 14 символдон турушу керек!")
+        if not value.isdigit():
+            raise serializers.ValidationError("Логин тек гана сан болушу керек!")
+        return value
+
+    def validate_password(self, value):
+        """
+        Паролдун узундугун текшерүү: 15 орундан көп болбошу керек.
+        """
+        if len(value) > 15:
+            raise serializers.ValidationError("Пароль 15 символдон ашпашы керек!")
+        return value
+
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
-
 
 
 class SpravkiSerializer(serializers.ModelSerializer):
