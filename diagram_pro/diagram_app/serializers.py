@@ -7,12 +7,13 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
-    INN = serializers.CharField(source='username')  # username талаасын INN деп өзгөрттүк
+    username = serializers.CharField()  # username талаасын INN деп өзгөрттүк
 
     class Meta:
         model = User
-        fields = ('INN', 'password', 'last_name', 'is_superuser')  # INN колдонулду
+        fields = ('username', 'password', 'last_name', 'is_superuser')  # INN колдонулду
         extra_kwargs = {'password': {'write_only': True}}  # Пароль жоопто көрүнбөйт
+
 
     def validate_INN(self, value):
         """ INN (Логин) 14 орундуу сан болушу керек. """
@@ -22,11 +23,13 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("INN тек гана сан болушу керек!")
         return value
 
+
     def validate_password(self, value):
         """ Паролдун узундугун текшерүү: 15 орундан көп болбошу керек. """
         if len(value) > 15:
             raise serializers.ValidationError("Пароль 15 символдон ашпашы керек!")
         return value
+
 
     def validate_last_name(self, value):
         """ Фамилия 60 символдон ашпашы керек. Эгер аз болсо, көйгөй жаратпайт. """
@@ -34,9 +37,14 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Фамилия 60 символдон ашпашы керек!")
         return value
 
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            instance.set_password(validated_data.pop('password'))
+        return super().update(instance, validated_data)
+
+
     def create(self, validated_data):
-        """ Колдонуучуну түзүү (INN → username катары колдонулат). """
-        validated_data['username'] = validated_data.pop('INN')  # INN'ди username кылып сактайбыз
         password = validated_data.pop('password')  # Паролду бөлүп алабыз
         is_superuser = validated_data.pop('is_superuser', False)  # Админ же жоктугун алабыз
 

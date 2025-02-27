@@ -1,5 +1,21 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from .models import *
+
+
+from django.contrib import admin
+from django.contrib.auth.models import User
+
+class CustomUserAdmin(UserAdmin):
+    list_display = ('id', 'username', 'last_name', 'is_staff', 'is_superuser')
+    search_fields = ('username', 'last_name')
+    list_filter = ('is_superuser', 'is_staff')
+    ordering = ('-id',)
+
+# Мурун катталган User моделин кайра каттайбыз
+admin.site.unregister(User)  # Биринчи мурунку каттоону өчүрөбүз
+admin.site.register(User, CustomUserAdmin)  # Өзүбүздүн версияны каттайбыз
+
 
 # Бардык моделдерди каттоо
 @admin.register(Spravki)

@@ -7,6 +7,7 @@ from .views import *
 router = DefaultRouter()
 
 # Бардык ViewSet'терди каттоо
+router.register(r'users', AdminUserViewSet, basename='users')
 router.register(r'spravki', SpravkiViewSet, basename='spravki')
 router.register(r'post_cpgu', PostCPGUViewSet, basename='post_cpgu')
 router.register(r'treb_mil', TrebMilViewSet, basename='treb_mil')
@@ -23,7 +24,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('accounts/', include('allauth.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),  # Токен алуу API
-    path('register/', RegisterView.as_view(), name='register'),
+    # path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
-    path('admin-login/', AdminLoginView.as_view(), name='admin-login'),
+    # path('admin-login/', AdminLoginView.as_view(), name='admin-login'),
 ]
