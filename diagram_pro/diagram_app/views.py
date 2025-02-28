@@ -6,6 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from .serializers import *
 from .models import *
+from rest_framework.exceptions import PermissionDenied
 
 
 # class RegisterView(APIView):
@@ -110,6 +111,33 @@ class BaseReportViewSet(viewsets.ModelViewSet):
         """
         serializer.save(user=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        """
+        Колдонуучу өзүнүн гана отчетун өчүрө алат.
+        """
+        instance = self.get_object()
+        if not request.user.is_staff and instance.user != request.user:
+            raise PermissionDenied("Сиз бул отчетту өчүрө албайсыз!")
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Колдонуучу өзүнүн гана отчетун өзгөртө алат.
+        """
+        instance = self.get_object()
+        if not request.user.is_staff and instance.user != request.user:
+            raise PermissionDenied("Сиз бул отчетту өзгөртө албайсыз!")
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Колдонуучу өзүнүн гана отчетун жарым-жартылай өзгөртө алат.
+        """
+        instance = self.get_object()
+        if not request.user.is_staff and instance.user != request.user:
+            raise PermissionDenied("Сиз бул отчетту өзгөртө албайсыз!")
+        return super().partial_update(request, *args, **kwargs)
 
 
 # Ар бир модель үчүн ViewSet'тер
