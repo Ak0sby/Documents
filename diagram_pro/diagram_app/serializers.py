@@ -1,10 +1,7 @@
-from rest_framework import serializers
-from django.contrib.auth.models import User
 from .models import *
-
-
 from rest_framework import serializers
 from django.contrib.auth.models import User
+
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField()  # username талаасын INN деп өзгөрттүк
@@ -73,64 +70,23 @@ class AdminLoginSerializer(serializers.Serializer):
 
 
 
-class SpravkiSerializer(serializers.ModelSerializer):
+class DocsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Spravki
+        model = Docs
         fields = '__all__'
         read_only_fields = ['id', 'user', 'created_at']  # user жана created_at автоматтык түрдө белгиленет
 
 
-class PostCPGUSerializer(serializers.ModelSerializer):
+class ReportSerializer(serializers.Serializer):
+    spravki = serializers.IntegerField()
+    post_cpgus = serializers.IntegerField()
+    treb_mils = serializers.IntegerField()
+    vlkart = serializers.IntegerField()
+    aktual = serializers.IntegerField()
+    akt_sud = serializers.IntegerField()
+    post_prekr = serializers.IntegerField()
+    post_ad = serializers.IntegerField()
+    istreb = serializers.IntegerField()
+
     class Meta:
-        model = PostCPGU
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']  # user жана created_at автоматтык түрдө белгиленет
-
-
-class TrebMilSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TrebMil
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
-
-
-class VLkartSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VLKart
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
-
-
-class AktualSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Aktual
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
-
-
-class Akt_SudSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Akt_SUD
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
-
-
-class Post_prekrSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post_prеkr
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
-
-
-class Post_adSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post_ad
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
-
-
-class IstrebSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Istreb
-        fields = '__all__'
-        read_only_fields = ['id', 'user', 'created_at']
+        fields = ['spravki', 'post_cpgu', 'treb_mil', 'vlkart', 'aktual', 'akt_sud', 'post_prekr', 'post_ad', 'istreb']

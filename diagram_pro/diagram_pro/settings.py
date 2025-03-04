@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-4g&rmy25qi4b1fgqql3weor+_iqdyy$&2im1iwqdqn$ps+@vk_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*", 'localhost']
+ALLOWED_HOSTS = ["*", 'localhost', "127.0.0.1"]
 
 
 # Application definition
@@ -72,11 +72,14 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
 ]
-
+CORS_ALLOW_ALL_ORIGINS = True  # Фронтендти тест кылуу үчүн
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Пример для разработки на локальном сервере
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",# Пример для разработки на локальном сервере
 
 ]
+CORS_ALLOW_CREDENTIALS = True  # Эгер логин куки же токен колдонсо
+
 
 ROOT_URLCONF = 'diagram_pro.urls'
 

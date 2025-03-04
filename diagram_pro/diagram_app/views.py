@@ -1,26 +1,14 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from django.contrib.auth import authenticate, login
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from .serializers import *
 from .models import *
 from rest_framework.exceptions import PermissionDenied
-
-
-# class RegisterView(APIView):
-#     """
-#     Админ жана суперадмин жаңы колдонуучу кошот (Фамилия, логин, пароль менен).
-#     """
-#     @swagger_auto_schema(request_body=UserSerializer)
-#     def post(self, request):
-#         serializer = UserSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response({"message": "User created successfully!"}, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from drf_yasg import openapi
 
 
 class LoginView(APIView):
@@ -43,29 +31,7 @@ class LoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class AdminLoginView(APIView):
-#     """
-#     Суперадмин логин API (Фамилия, логин жана пароль менен кирүү).
-#     """
-#     @swagger_auto_schema(request_body=AdminLoginSerializer)  # Жаңы AdminLoginSerializer колдонулду
-#     def post(self, request):
-#         serializer = AdminLoginSerializer(data=request.data)
-#         if serializer.is_valid():
-#             INN = serializer.validated_data['INN']
-#             password = serializer.validated_data['password']
-#             last_name = serializer.validated_data['last_name']
-#
-#             user = authenticate(request, username=INN, password=password)
-#
-#             if user and user.is_staff:  # Админ экени текшерилет
-#                 if user.last_name.lower() == last_name.lower():  # Фамилияны текшерүү
-#                     login(request, user)
-#                     return Response({"message": "Admin login successful!"}, status=status.HTTP_200_OK)
-#                 return Response({"message": "Incorrect last name!"}, status=status.HTTP_400_BAD_REQUEST)
-#
-#             return Response({"message": "Invalid credentials or not an admin!"}, status=status.HTTP_400_BAD_REQUEST)
-#
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class AdminUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -141,46 +107,126 @@ class BaseReportViewSet(viewsets.ModelViewSet):
 
 
 # Ар бир модель үчүн ViewSet'тер
-class SpravkiViewSet(BaseReportViewSet):
-    model = Spravki
-    serializer_class = SpravkiSerializer
+class DocsViewSet(BaseReportViewSet):
+    model = Docs
+    serializer_class = DocsSerializer
 
 
-class PostCPGUViewSet(BaseReportViewSet):
-    model = PostCPGU
-    serializer_class = PostCPGUSerializer
+class ReportViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_description="Жеке колдонуучунун отчет диаграммасын көрсөтүү",
+        responses={
+            status.HTTP_200_OK: openapi.Response(
+                description="Жеке колдонуучунун отчет диаграммасы",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'spravki': openapi.Schema(type=openapi.TYPE_INTEGER, description="Spravki отчетторунун саны"),
+                        'post_cpgu': openapi.Schema(type=openapi.TYPE_INTEGER, description="Post CPGU отчетторунун саны"),
+                        'treb_mil': openapi.Schema(type=openapi.TYPE_INTEGER, description="Treb Mil отчетторунун саны"),
+                        'vlkart': openapi.Schema(type=openapi.TYPE_INTEGER, description="VL Kart отчетторунун саны"),
+                        'aktual': openapi.Schema(type=openapi.TYPE_INTEGER, description="Aktual отчетторунун саны"),
+                        'akt_sud': openapi.Schema(type=openapi.TYPE_INTEGER, description="Akt Sud отчетторунун саны"),
+                        'post_prekr': openapi.Schema(type=openapi.TYPE_INTEGER, description="Post Prekr отчетторунун саны"),
+                        'post_ad': openapi.Schema(type=openapi.TYPE_INTEGER, description="Post Ad отчетторунун саны"),
+                        'istreb': openapi.Schema(type=openapi.TYPE_INTEGER, description="Istreb отчетторунун саны"),
+                    }
+                )
+            ),
+            status.HTTP_401_UNAUTHORIZED: openapi.Response(
+                description="Аутентификация талап кылынат"
+            ),
+        }
+    )
+    @action(detail=True, methods=['get'])
+    def get_user_report(self, request, pk=None):
+        """
+        Жеке колдонуучунун отчет диаграммасын алуу
+        """
+        user = request.user
+        if user.id != int(pk) and not user.is_staff:
+            return Response({"detail": "Сиздин бул ишти жасоого укугуңуз жок."}, status=status.HTTP_403_FORBIDDEN)
 
-class TrebMilViewSet(BaseReportViewSet):
-    model = TrebMil
-    serializer_class = TrebMilSerializer
+        # Колдонуучунун өзүнүн отчетторун алуу
+        try:
+            target_user = User.objects.get(id=pk)  # pk - бул колдонуучунун id
+        except User.DoesNotExist:
+            return Response({"detail": "Колдонуучу табылган жок."}, status=status.HTTP_404_NOT_FOUND)
 
+        data = self.get_user_report_data(target_user.id)
+        return Response(data)
 
-class VLkartViewSet(BaseReportViewSet):
-    model = VLKart
-    serializer_class = VLkartSerializer
+    @swagger_auto_schema(
+        operation_description="Бардык колдонуучулардын отчет диаграммасын көрсөтүү",
+        responses={
+            status.HTTP_200_OK: openapi.Response(
+                description="Бардык колдонуучулардын отчет диаграммасы",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'spravki': openapi.Schema(type=openapi.TYPE_INTEGER, description="Spravki отчетторунун саны"),
+                        'post_cpgu': openapi.Schema(type=openapi.TYPE_INTEGER, description="Post CPGU отчетторунун саны"),
+                        'treb_mil': openapi.Schema(type=openapi.TYPE_INTEGER, description="Treb Mil отчетторунун саны"),
+                        'vlkart': openapi.Schema(type=openapi.TYPE_INTEGER, description="VL Kart отчетторунун саны"),
+                        'aktual': openapi.Schema(type=openapi.TYPE_INTEGER, description="Aktual отчетторунун саны"),
+                        'akt_sud': openapi.Schema(type=openapi.TYPE_INTEGER, description="Akt Sud отчетторунун саны"),
+                        'post_prekr': openapi.Schema(type=openapi.TYPE_INTEGER, description="Post Prekr отчетторунун саны"),
+                        'post_ad': openapi.Schema(type=openapi.TYPE_INTEGER, description="Post Ad отчетторунун саны"),
+                        'istreb': openapi.Schema(type=openapi.TYPE_INTEGER, description="Istreb отчетторунун саны"),
+                    }
+                )
+            ),
+            status.HTTP_401_UNAUTHORIZED: openapi.Response(
+                description="Аутентификация талап кылынат"
+            ),
+        }
+    )
+    @action(detail=False, methods=['get'])
+    def get_all_users_report(self, request):
+        """
+        Админдерге бардык колдонуучулардын отчетторун алуу мүмкүнчүлүгү
+        """
+        user = request.user
+        if not user.is_staff:
+            return Response({"detail": "Сиздин бул ишти жасоого укугуңуз жок."}, status=status.HTTP_403_FORBIDDEN)
 
+        data = self.get_all_users_report_data()
+        return Response(data)
 
-class AktualViewSet(BaseReportViewSet):
-    model = Aktual
-    serializer_class = AktualSerializer
+    def get_user_report_data(self, user_id):
+        """
+        Белгилүү бир колдонуучунун отчетторун кайтаруу
+        """
+        docs = Docs.objects.filter(user_id=user_id)
 
+        return {
+            "spravki": docs.aggregate(models.Sum('spravki'))['spravki__sum'] or 0,
+            "post_cpgu": docs.aggregate(models.Sum('postcpgu'))['postcpgu__sum'] or 0,
+            "treb_mil": docs.aggregate(models.Sum('trebmil'))['trebmil__sum'] or 0,
+            "vlkart": docs.aggregate(models.Sum('vlkart'))['vlkart__sum'] or 0,
+            "aktual": docs.aggregate(models.Sum('aktual'))['aktual__sum'] or 0,
+            "akt_sud": docs.aggregate(models.Sum('akt_sud'))['akt_sud__sum'] or 0,
+            "post_prekr": docs.aggregate(models.Sum('postprekr'))['postprekr__sum'] or 0,
+            "post_ad": docs.aggregate(models.Sum('postad'))['postad__sum'] or 0,
+            "istreb": docs.aggregate(models.Sum('istreb'))['istreb__sum'] or 0,
+        }
 
-class Akt_SudViewSet(BaseReportViewSet):
-    model = Akt_SUD
-    serializer_class = Akt_SudSerializer
-
-
-class Post_prekrViewSet(BaseReportViewSet):
-    model = Post_prеkr
-    serializer_class = Post_prekrSerializer
-
-
-class Post_adViewSet(BaseReportViewSet):
-    model = Post_ad
-    serializer_class = Post_adSerializer
-
-
-class IstrebViewSet(BaseReportViewSet):
-    model = Istreb
-    serializer_class = IstrebSerializer
+    def get_all_users_report_data(self):
+        """
+        Бардык колдонуучулардын отчетторун кайтаруу
+        """
+        docs = Docs.objects.all()
+        report_data = {
+            "spravki": docs.aggregate(models.Sum('spravki'))['spravki__sum'] or 0,
+            "post_cpgu": docs.aggregate(models.Sum('postcpgu'))['postcpgu__sum'] or 0,
+            "treb_mil": docs.aggregate(models.Sum('trebmil'))['trebmil__sum'] or 0,
+            "vlkart": docs.aggregate(models.Sum('vlkart'))['vlkart__sum'] or 0,
+            "aktual": docs.aggregate(models.Sum('aktual'))['aktual__sum'] or 0,
+            "akt_sud": docs.aggregate(models.Sum('akt_sud'))['akt_sud__sum'] or 0,
+            "post_prekr": docs.aggregate(models.Sum('postprekr'))['postprekr__sum'] or 0,
+            "post_ad": docs.aggregate(models.Sum('postad'))['postad__sum'] or 0,
+            "istreb": docs.aggregate(models.Sum('istreb'))['istreb__sum'] or 0,
+        }
+        return report_data
